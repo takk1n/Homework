@@ -1,0 +1,48 @@
+dataset<-read.csv(file="C:/Users/ingri/Desktop/SEB/bank/bank.csv", header = TRUE, sep=";")
+mysample<-dataset[sample(1:nrow(dataset), 100, replace=FALSE),]
+
+select(mysample, 
+  age, 
+  job, 
+  marital, 
+  education, 
+  default,
+  balance, 
+  housing, 
+  contact, 
+  day, 
+  month, 
+  duration, 
+  campaign, 
+  pdays, 
+  previous, 
+  poutcome, 
+  y)
+  
+filter(mysample, education == "secondary")
+filter(mysample, education == "secondary" & housing == "yes" & loan == "yes")
+
+drop <- c("education", "day", "duration")
+newdata = mysample[,!(names(mysample) %in% drop)]
+
+colnames(newdata)[colnames(newdata) == "y"] <- "TermDeposit"
+
+summary(dataset)
+summary(mysample)
+summary(newdata)
+
+attach(newdata)
+JobT<-table(job)
+JobT
+
+MaritalT<-table(marital)
+MaritalT
+
+addmargins(JobT)
+prop.table(JobT)
+round(100*prop.table(JobT), digits = 0)
+cross<-table(job, marital)
+addmargins(cross)
+
+newdata$balancesin <- sin(newdata$balance)
+newdata[order(age, balance),]
