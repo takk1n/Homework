@@ -119,5 +119,5 @@ dataset.pred = rep("yes", dim(training)[1])
 dataset.pred[dataset.prob > .5] = "no"
 table(dataset.pred, training$TermDeposit.F)
 mean(dataset.pred == training$TermDeposit.F)
-#We get that the success rate of our predictions is 88%, with an error pf 12%.
+#We get that the success rate of our predictions is 88%, with an error of 12%.
 1 - mean(dataset.pred == training$TermDeposit.F)
