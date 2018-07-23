@@ -1,0 +1,123 @@
+library("dplyr")
+
+
+#1. Data Manipulation Task
+dataset<-read.csv(file="./bank.csv", header = TRUE, sep=";")
+View(dataset)
+
+mysample<-dataset[sample(1:nrow(dataset), 100, replace=FALSE),]
+View(mysample)
+
+select(mysample, age, job, marital, education, default, balance, housing, contact, day, month, duration, campaign, pdays, previous, poutcome, y)
+filter(mysample, education == "secondary")
+filter(mysample, education == "secondary" & housing == "yes" & loan == "yes")
+
+drop <- c("education", "day", "duration")
+newdata = mysample[,!(names(mysample) %in% drop)]
+View(newdata)
+
+colnames(newdata)[colnames(newdata) == "y"] <- "TermDeposit"
+#Pictures "Summary(dataset)", "Summary(mysample)", "Summary(newdata)"
+summary(dataset)
+summary(mysample)
+summary(newdata)
+attach(newdata)
+JobT<-table(job)
+#Picture ""Summary(job)"
+JobT
+MaritalT<-table(marital)
+#Picture ""Summary(marital)"
+MaritalT
+addmargins(JobT)
+prop.table(JobT)
+round(100*prop.table(JobT), digits = 0)
+cross<-table(job, marital)
+##Picture ""Summary(cross)"
+addmargins(cross)
+newdata$balancesin <- sin(newdata$balance)
+
+#Picture "newdata(drop,rename,add)
+View(newdata)
+
+#Picture "order(age&balance)
+newdata[order(age, balance),]
+
+#2. Data Visualisation Task
+library("ggplot2")
+#Plot1
+ggplot(newdata, aes(marital, balance)) + geom_bar(stat = "identity", fill = "darkblue") + scale_x_discrete("marital")+ scale_y_continuous("balance")+ theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) + labs(title = "Bar Chart")
+#Plot2
+ggplot(newdata, aes(month, fill = campaign)) + geom_bar()+labs(title = "Stacked Bar Chart", x = "Last Contact month", y = "Count of Contacts")
+#Plot3
+ggplot(newdata, aes(balance, age)) + geom_point() + scale_x_continuous("Balance")+ scale_y_continuous("Age", breaks = seq(0,270,by = 5))+ theme_bw()
+#Plot4
+ggplot(newdata, aes(TermDeposit, campaign)) + geom_bar(stat = "identity", fill = "darkblue") + scale_x_discrete("Term Deposit")+ scale_y_continuous("# campaign")+ theme(axis.text.x = element_text(angle = 90, vjust = 0.5)) + labs(title = "Bar Chart")
+
+#3. Modelling Task
+library("ResourceSelection")
+library("MKmisc")
+library("readr")
+library("caret")
+library("lmtest")
+
+dataset<-read.csv(file="./bank.csv", header = TRUE, sep=";")
+View(dataset)
+
+colnames(dataset)[colnames(dataset) == "y"] <- "TermDeposit"
+attach(dataset)
+summary(dataset)
+
+#Picture "factors"
+dataset$job.F <- factor(dataset$job)
+contrasts(dataset$job.F)
+
+dataset$default.F <- factor(dataset$default)
+contrasts(dataset$default.F)
+
+dataset$TermDeposit.F <- factor(dataset$TermDeposit)
+contrasts(dataset$TermDeposit.F)
+
+dataset$loan.F <- factor(dataset$loan)
+contrasts(dataset$loan.F)
+
+#Split 60% of the data for training and the remaining 40% for testing
+
+#Picture "splitting data"
+inTrain <- createDataPartition(y = dataset$TermDeposit.F, p = .60, list = FALSE)
+training <- dataset[inTrain,]
+testing <- dataset[-inTrain,]
+
+#Pictures "glm(customer1) and glm(customer2)
+customer1 <- glm(TermDeposit.F ~ age + job.F + default.F, data = training, family = binomial)
+summary(customer1)
+
+customer2 <- glm(TermDeposit.F ~ age + job.F + default.F + loan.F, data = training, family = binomial)
+summary(customer2)
+
+#we get that age and information if the credit is in default are less significant in determining if the customer subscribed for a term deposit, 
+#shown by low z-value and high p-value. 
+#The most significant is information if a customer has a personal loan; 
+#from the job positions the most significant are retired and student.
+
+#Picture "ANOVA"
+anova(customer1, test = "Chisq")
+anova(customer2, test = "Chisq")
+
+#Pictures "Statistics1" and "Statistics2"
+lrtest(customer1, customer2)
+HLgof.test(fit = fitted(customer1), obs = training$TermDeposit.F)
+hoslem.test(training$TermDeposit, fitted(customer1), g=10)
+
+#This gives p=2.2e-16, indicating no evidence of poor fit which means the model is indeed correctly specified.
+
+#Now we want to see how the model performs against the testing data. 
+dataset.prob = predict(customer1, testing, type = "response")
+
+#Creates a vectors of "yes" (TermDeposit, denoted as 0 in coded set) which converts into "no" where the predicted probability is greater than 50%.
+#Picture "testing"
+dataset.pred = rep("yes", dim(training)[1])
+dataset.pred[dataset.prob > .5] = "no"
+table(dataset.pred, training$TermDeposit.F)
+mean(dataset.pred == training$TermDeposit.F)
+#We get that the success rate of our predictions is 88%, with an error pf 12%.
+1 - mean(dataset.pred == training$TermDeposit.F)
