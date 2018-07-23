@@ -32,7 +32,7 @@ addmargins(JobT)
 prop.table(JobT)
 round(100*prop.table(JobT), digits = 0)
 cross<-table(job, marital)
-##Picture ""Summary(cross)"
+#Picture ""Summary(cross)"
 addmargins(cross)
 newdata$balancesin <- sin(newdata$balance)
 
